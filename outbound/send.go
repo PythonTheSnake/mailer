@@ -113,9 +113,6 @@ func StartQueue(config *shared.Flags) {
 			return err
 		}
 
-		idHash := sha256.Sum256([]byte(id))
-		messageID := hex.EncodeToString(idHash[:]) + "@" + config.Hostname
-
 		// Get the email from the database
 		cursor, err := gorethink.Db(config.RethinkDatabase).Table("emails").Get(id).Run(session)
 		if err != nil {
@@ -207,7 +204,7 @@ func StartQueue(config *shared.Flags) {
 				context := &rawSingleContext{
 					From:         ctxFrom,
 					CombinedTo:   strings.Join(email.To, ", "),
-					MessageID:    messageID,
+					MessageID:    email.MessageID,
 					HasInReplyTo: hasInReplyTo,
 					InReplyTo:    inReplyTo,
 					Subject:      he.Encode(email.Name),
@@ -246,7 +243,7 @@ func StartQueue(config *shared.Flags) {
 				context := &rawMultiContext{
 					From:         ctxFrom,
 					CombinedTo:   strings.Join(email.To, ", "),
-					MessageID:    messageID,
+					MessageID:    email.MessageID,
 					HasInReplyTo: hasInReplyTo,
 					InReplyTo:    inReplyTo,
 					Boundary1:    uniuri.NewLen(20),
@@ -430,15 +427,16 @@ func StartQueue(config *shared.Flags) {
 					Name:         "Encrypted message (" + email.ID + ")",
 					Owner:        account.ID,
 				},
-				Kind:     "manifest",
-				From:     email.From,
-				To:       email.To,
-				CC:       email.CC,
-				BCC:      email.BCC,
-				Files:    email.Files,
-				Manifest: string(encryptedManifest),
-				Body:     string(encryptedBody),
-				Thread:   email.Thread,
+				Kind:      "manifest",
+				From:      email.From,
+				To:        email.To,
+				CC:        email.CC,
+				BCC:       email.BCC,
+				Files:     email.Files,
+				Manifest:  string(encryptedManifest),
+				Body:      string(encryptedBody),
+				Thread:    email.Thread,
+				MessageID: email.MessageID,
 			}).Exec(session)
 			if err != nil {
 				return err
@@ -449,7 +447,7 @@ func StartQueue(config *shared.Flags) {
 			context := &pgpContext{
 				From:         ctxFrom,
 				CombinedTo:   strings.Join(email.To, ", "),
-				MessageID:    messageID,
+				MessageID:    email.MessageID,
 				HasInReplyTo: hasInReplyTo,
 				InReplyTo:    inReplyTo,
 				Subject:      email.Name,
@@ -480,7 +478,7 @@ func StartQueue(config *shared.Flags) {
 				context := &manifestSingleContext{
 					From:         ctxFrom,
 					CombinedTo:   strings.Join(email.To, ", "),
-					MessageID:    messageID,
+					MessageID:    email.MessageID,
 					HasInReplyTo: hasInReplyTo,
 					InReplyTo:    inReplyTo,
 					Subject:      he.Encode(email.Name),
@@ -523,7 +521,7 @@ func StartQueue(config *shared.Flags) {
 				context := &manifestMultiContext{
 					From:         ctxFrom,
 					CombinedTo:   strings.Join(email.To, ", "),
-					MessageID:    messageID,
+					MessageID:    email.MessageID,
 					HasInReplyTo: hasInReplyTo,
 					InReplyTo:    inReplyTo,
 					Subject:      he.Encode(email.Name),
