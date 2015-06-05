@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/bigcommerce/noopraven-go"
 	"github.com/getsentry/raven-go"
 	"github.com/lavab/flag"
 	"github.com/lavab/smtpd"
@@ -79,7 +78,7 @@ func main() {
 	flag.Parse()
 
 	// Create a new Raven client
-	var rc noopraven.RavenClient
+	var rc *raven.Client
 	if *ravenDSN != "" {
 		h, err := os.Hostname()
 		if err != nil {
