@@ -1,13 +1,17 @@
 package main
 
 import (
+	"log"
 	"os"
 
+	"github.com/bigcommerce/noopraven-go"
+	"github.com/getsentry/raven-go"
 	"github.com/lavab/flag"
+	"github.com/lavab/smtpd"
+
 	"github.com/lavab/mailer/handler"
 	"github.com/lavab/mailer/outbound"
 	"github.com/lavab/mailer/shared"
-	"github.com/lavab/smtpd"
 )
 
 var (
@@ -66,41 +70,62 @@ var (
 	// dkim selector, domain and key
 	dkimKey      = flag.String("dkim_key", "", "Path of the DKIM private file")
 	dkimSelector = flag.String("dkim_selector", "default", "DKIM selector")
+
+	// raven dsn
+	ravenDSN = flag.String("raven_dsn", "", "DSN of the Raven connection")
 )
 
 func main() {
 	flag.Parse()
 
-	config := &shared.Flags{
-		EtcdAddress:      *etcdAddress,
-		EtcdCAFile:       *etcdCAFile,
-		EtcdCertFile:     *etcdCertFile,
-		EtcdKeyFile:      *etcdKeyFile,
-		EtcdPath:         *etcdPath,
-		BindAddress:      *bindAddress,
-		WelcomeMessage:   *welcomeMessage,
-		Hostname:         *hostname,
-		LogFormatterType: *logFormatterType,
-		ForceColors:      *forceColors,
-		RethinkAddress:   *rethinkdbAddress,
-		RethinkKey:       *rethinkdbKey,
-		RethinkDatabase:  *rethinkdbDatabase,
-		NSQDAddress:      *nsqdAddress,
-		LookupdAddress:   *lookupdAddress,
-		SMTPAddress:      *smtpAddress,
-		SpamdAddress:     *spamdAddress,
-		DKIMKey:          *dkimKey,
-		DKIMSelector:     *dkimSelector,
+	// Create a new Raven client
+	var rc noopraven.RavenClient
+	if *ravenDSN != "" {
+		h, err := os.Hostname()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		rc, err = raven.NewClient(*ravenDSN, map[string]string{
+			"hostname": h,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
-	h := handler.PrepareHandler(config)
+	rc.CapturePanic(func() {
+		config := &shared.Flags{
+			EtcdAddress:      *etcdAddress,
+			EtcdCAFile:       *etcdCAFile,
+			EtcdCertFile:     *etcdCertFile,
+			EtcdKeyFile:      *etcdKeyFile,
+			EtcdPath:         *etcdPath,
+			BindAddress:      *bindAddress,
+			WelcomeMessage:   *welcomeMessage,
+			Hostname:         *hostname,
+			LogFormatterType: *logFormatterType,
+			ForceColors:      *forceColors,
+			RethinkAddress:   *rethinkdbAddress,
+			RethinkKey:       *rethinkdbKey,
+			RethinkDatabase:  *rethinkdbDatabase,
+			NSQDAddress:      *nsqdAddress,
+			LookupdAddress:   *lookupdAddress,
+			SMTPAddress:      *smtpAddress,
+			SpamdAddress:     *spamdAddress,
+			DKIMKey:          *dkimKey,
+			DKIMSelector:     *dkimSelector,
+		}
 
-	server := &smtpd.Server{
-		WelcomeMessage: *welcomeMessage,
-		Handler:        h,
-	}
+		h := handler.PrepareHandler(config)
 
-	outbound.StartQueue(config)
+		server := &smtpd.Server{
+			WelcomeMessage: *welcomeMessage,
+			Handler:        h,
+		}
 
-	server.ListenAndServe(*bindAddress)
+		outbound.StartQueue(config)
+
+		server.ListenAndServe(*bindAddress)
+	}, nil)
 }
