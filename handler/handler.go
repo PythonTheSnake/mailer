@@ -866,7 +866,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 				CC:        cc,
 				Body:      body,
 				Thread:    thread.ID,
-				MessageID: strings.Trim(email.Headers.Get("Message-ID"), "<>"),
+				MessageID: strings.Trim(email.Headers.Get("Message-ID"), "<>"), // todo: create a message id parser
 				Status:    "received",
 			}
 
