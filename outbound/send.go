@@ -332,7 +332,9 @@ func StartQueue(config *shared.Flags) {
 
 			// Prepare a new manifest
 			manifest := &man.Manifest{
-				Version: semver.Version{1, 0, 0, nil, nil},
+				Version: semver.Version{
+					Major: 1,
+				},
 				From:    fromAddr,
 				To:      toAddr,
 				Subject: he.Encode(email.Name),

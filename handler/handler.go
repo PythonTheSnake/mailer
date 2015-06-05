@@ -454,7 +454,9 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 				}
 			}
 			rawManifest := &man.Manifest{
-				Version: semver.Version{1, 0, 0, nil, nil},
+				Version: semver.Version{
+					Major: 1,
+				},
 				From:    fm,
 				To:      to,
 				CC:      cc,
