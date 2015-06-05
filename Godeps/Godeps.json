@@ -46,6 +46,10 @@
 			"Rev": "9b4a113f96b3263b5223fe9c5fd1d1115811b343"
 		},
 		{
+			"ImportPath": "github.com/bigcommerce/noopraven-go",
+			"Rev": "70d7352c03bf12681c1b37b1ff717dd4d1f54338"
+		},
+		{
 			"ImportPath": "github.com/bitly/go-nsq",
 			"Comment": "v1.0.4-2-gd76cbe0",
 			"Rev": "d76cbe0746446bc6ff540042dde4d074a962dfde"
@@ -97,6 +101,10 @@
 			"Rev": "535138d7bcd717d6531c701ef5933d98b1866257"
 		},
 		{
+			"ImportPath": "github.com/getsentry/raven-go",
+			"Rev": "c8f8fb7c415203f52ca882e2661d21bc6dcb54d7"
+		},
+		{
 			"ImportPath": "github.com/gokyle/hotp",
 			"Rev": "cab5c36e945092b6fb703b6c785bb06fd0537a0d"
 		},
@@ -111,33 +119,33 @@
 		},
 		{
 			"ImportPath": "github.com/lavab/api/cache",
-			"Comment": "2.0.0-34-g54b46b5",
-			"Rev": "54b46b5c73f0c974f34b007164514bd728ba1599"
+			"Comment": "2.0.2-6-g6bdbdd8",
+			"Rev": "6bdbdd84e93bad2bd1537780a8b67599608c6506"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/db",
-			"Comment": "2.0.0-34-g54b46b5",
-			"Rev": "54b46b5c73f0c974f34b007164514bd728ba1599"
+			"Comment": "2.0.2-6-g6bdbdd8",
+			"Rev": "6bdbdd84e93bad2bd1537780a8b67599608c6506"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/env",
-			"Comment": "2.0.0-34-g54b46b5",
-			"Rev": "54b46b5c73f0c974f34b007164514bd728ba1599"
+			"Comment": "2.0.2-6-g6bdbdd8",
+			"Rev": "6bdbdd84e93bad2bd1537780a8b67599608c6506"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/factor",
-			"Comment": "2.0.0-34-g54b46b5",
-			"Rev": "54b46b5c73f0c974f34b007164514bd728ba1599"
+			"Comment": "2.0.2-6-g6bdbdd8",
+			"Rev": "6bdbdd84e93bad2bd1537780a8b67599608c6506"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/models",
-			"Comment": "2.0.0-34-g54b46b5",
-			"Rev": "54b46b5c73f0c974f34b007164514bd728ba1599"
+			"Comment": "2.0.2-6-g6bdbdd8",
+			"Rev": "6bdbdd84e93bad2bd1537780a8b67599608c6506"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/utils",
-			"Comment": "2.0.0-34-g54b46b5",
-			"Rev": "54b46b5c73f0c974f34b007164514bd728ba1599"
+			"Comment": "2.0.2-6-g6bdbdd8",
+			"Rev": "6bdbdd84e93bad2bd1537780a8b67599608c6506"
 		},
 		{
 			"ImportPath": "github.com/lavab/flag",
