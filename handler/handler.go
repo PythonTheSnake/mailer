@@ -697,7 +697,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 
 				// Found one = that one is correct
 				if len(emails) == 1 {
-					cursor, err := gorethink.Db(config.RethinkDatabase).Table("threads").Get(emails[0].ID).Run(session)
+					cursor, err := gorethink.Db(config.RethinkDatabase).Table("threads").Get(emails[0].Thread).Run(session)
 					if err != nil {
 						return describeError(err)
 					}
