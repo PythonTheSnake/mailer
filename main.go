@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"os"
 
@@ -93,38 +95,54 @@ func main() {
 		}
 	}
 
-	rc.CapturePanic(func() {
-		config := &shared.Flags{
-			EtcdAddress:      *etcdAddress,
-			EtcdCAFile:       *etcdCAFile,
-			EtcdCertFile:     *etcdCertFile,
-			EtcdKeyFile:      *etcdKeyFile,
-			EtcdPath:         *etcdPath,
-			BindAddress:      *bindAddress,
-			WelcomeMessage:   *welcomeMessage,
-			Hostname:         *hostname,
-			LogFormatterType: *logFormatterType,
-			ForceColors:      *forceColors,
-			RethinkAddress:   *rethinkdbAddress,
-			RethinkKey:       *rethinkdbKey,
-			RethinkDatabase:  *rethinkdbDatabase,
-			NSQDAddress:      *nsqdAddress,
-			LookupdAddress:   *lookupdAddress,
-			SMTPAddress:      *smtpAddress,
-			SpamdAddress:     *spamdAddress,
-			DKIMKey:          *dkimKey,
-			DKIMSelector:     *dkimSelector,
+	defer func() {
+		var packet *raven.Packet
+		p := recover()
+		switch rval := p.(type) {
+		case nil:
+			return
+		case error:
+			packet = raven.NewPacket(rval.Error(), raven.NewException(rval, raven.NewStacktrace(2, 3, nil)))
+		default:
+			rvalStr := fmt.Sprint(rval)
+			packet = raven.NewPacket(rvalStr, raven.NewException(errors.New(rvalStr), raven.NewStacktrace(2, 3, nil)))
 		}
 
-		h := handler.PrepareHandler(config)
+		_, ch := rc.Capture(packet, nil)
+		<-ch
+		panic(p)
+	}()
 
-		server := &smtpd.Server{
-			WelcomeMessage: *welcomeMessage,
-			Handler:        h,
-		}
+	config := &shared.Flags{
+		EtcdAddress:      *etcdAddress,
+		EtcdCAFile:       *etcdCAFile,
+		EtcdCertFile:     *etcdCertFile,
+		EtcdKeyFile:      *etcdKeyFile,
+		EtcdPath:         *etcdPath,
+		BindAddress:      *bindAddress,
+		WelcomeMessage:   *welcomeMessage,
+		Hostname:         *hostname,
+		LogFormatterType: *logFormatterType,
+		ForceColors:      *forceColors,
+		RethinkAddress:   *rethinkdbAddress,
+		RethinkKey:       *rethinkdbKey,
+		RethinkDatabase:  *rethinkdbDatabase,
+		NSQDAddress:      *nsqdAddress,
+		LookupdAddress:   *lookupdAddress,
+		SMTPAddress:      *smtpAddress,
+		SpamdAddress:     *spamdAddress,
+		DKIMKey:          *dkimKey,
+		DKIMSelector:     *dkimSelector,
+	}
 
-		outbound.StartQueue(config)
+	h := handler.PrepareHandler(config)
 
-		server.ListenAndServe(*bindAddress)
-	}, nil)
+	server := &smtpd.Server{
+		WelcomeMessage: *welcomeMessage,
+		Handler:        h,
+	}
+
+	outbound.StartQueue(config)
+
+	server.ListenAndServe(*bindAddress)
 }
