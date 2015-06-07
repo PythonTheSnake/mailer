@@ -1,6 +1,9 @@
 {
 	"ImportPath": "github.com/lavab/mailer",
 	"GoVersion": "go1.4",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/go.crypto/pbkdf2",
@@ -115,33 +118,33 @@
 		},
 		{
 			"ImportPath": "github.com/lavab/api/cache",
-			"Comment": "2.0.2-8-ge90a874",
-			"Rev": "e90a874c815e2c8b5eeb6f36de9ffb4b6366b1d8"
+			"Comment": "2.0.2-12-g37d96a3",
+			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/db",
-			"Comment": "2.0.2-8-ge90a874",
-			"Rev": "e90a874c815e2c8b5eeb6f36de9ffb4b6366b1d8"
+			"Comment": "2.0.2-12-g37d96a3",
+			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/env",
-			"Comment": "2.0.2-8-ge90a874",
-			"Rev": "e90a874c815e2c8b5eeb6f36de9ffb4b6366b1d8"
+			"Comment": "2.0.2-12-g37d96a3",
+			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/factor",
-			"Comment": "2.0.2-8-ge90a874",
-			"Rev": "e90a874c815e2c8b5eeb6f36de9ffb4b6366b1d8"
+			"Comment": "2.0.2-12-g37d96a3",
+			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/models",
-			"Comment": "2.0.2-8-ge90a874",
-			"Rev": "e90a874c815e2c8b5eeb6f36de9ffb4b6366b1d8"
+			"Comment": "2.0.2-12-g37d96a3",
+			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/utils",
-			"Comment": "2.0.2-8-ge90a874",
-			"Rev": "e90a874c815e2c8b5eeb6f36de9ffb4b6366b1d8"
+			"Comment": "2.0.2-12-g37d96a3",
+			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
 		},
 		{
 			"ImportPath": "github.com/lavab/flag",
@@ -157,11 +160,11 @@
 		},
 		{
 			"ImportPath": "github.com/lavab/smtpd",
-			"Rev": "e841e048f8213f5a64611bfb8b7ba3676ac7dd66"
+			"Rev": "bb4ad0dc2f261ef1e8bc7d06b105cba5a5820259"
 		},
 		{
 			"ImportPath": "github.com/lavab/webhook/events",
-			"Rev": "1a303c5cdb6df232dda302ab8509fb31a817a8aa"
+			"Rev": "8e0d75e14f13634c4cb68c570845b410599c8d5a"
 		},
 		{
 			"ImportPath": "github.com/mreiferson/go-snappystream",
