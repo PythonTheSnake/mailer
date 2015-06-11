@@ -879,7 +879,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 			}
 
 			// Insert the email
-			if err := gorethink.Db(config.RethinkDatabase).Table("emails").Insert(es).Run(session); err != nil {
+			if err := gorethink.Db(config.RethinkDatabase).Table("emails").Insert(es).Exec(session); err != nil {
 				return describeError(err)
 			}
 
