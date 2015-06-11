@@ -121,6 +121,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 		if err != nil {
 			return describeError(err)
 		}
+		defer cursor.Close()
 		var addresses []*models.Address
 		if err := cursor.All(&addresses); err != nil {
 			return describeError(err)
@@ -137,6 +138,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 		if err != nil {
 			return describeError(err)
 		}
+		defer cursor.Close()
 		var accounts []*models.Account
 		if err := cursor.All(&accounts); err != nil {
 			return describeError(err)
@@ -412,8 +414,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 
 			// Push files into RethinkDB
 			for _, file := range files {
-				_, err := gorethink.Db(config.RethinkDatabase).Table("files").Insert(file).Run(session)
-				if err != nil {
+				if err := gorethink.Db(config.RethinkDatabase).Table("files").Insert(file).Exec(session); err != nil {
 					return describeError(err)
 				}
 			}
@@ -543,7 +544,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 				for _, account := range accounts {
 					fid := uniuri.NewLen(uniuri.UUIDLen)
 
-					_, err := gorethink.Db(config.RethinkDatabase).Table("files").Insert(&models.File{
+					if err := gorethink.Db(config.RethinkDatabase).Table("files").Insert(&models.File{
 						Resource: models.Resource{
 							ID:           fid,
 							DateCreated:  time.Now(),
@@ -555,8 +556,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 							Encoding: "application/pgp-encrypted",
 							Data:     string(child.Body),
 						},
-					}).Run(session)
-					if err != nil {
+					}).Exec(session); err != nil {
 						return describeError(err)
 					}
 
@@ -600,6 +600,10 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 				account.ID,
 				true,
 			}, []interface{}{}).Run(session)
+			if err != nil {
+				return describeError(err)
+			}
+			defer cursor.Close()
 			var labels []*models.Label
 			if err := cursor.All(&labels); err != nil {
 				return describeError(err)
@@ -690,6 +694,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 				if err != nil {
 					return describeError(err)
 				}
+				defer cursor.Close()
 				var emails []*models.Email
 				if err := cursor.All(&emails); err != nil {
 					return describeError(err)
@@ -701,6 +706,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 					if err != nil {
 						return describeError(err)
 					}
+					defer cursor.Close()
 					if err := cursor.One(&thread); err != nil {
 						return describeError(err)
 					}
@@ -723,14 +729,10 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 						),
 					)
 				}).Run(session)
-				/*.Filter(func(row gorethink.Term) gorethink.Term {
-					return gorethink.Now().Sub(row.Field("date_modified")).Lt(gorethink.Expr(14*24*60*60)).And(
-						row.Field("members").Contains(gorethink.Expr()),
-					)
-				}).Run(session)*/
 				if err != nil {
 					return describeError(err)
 				}
+				defer cursor.Close()
 				var threads []*models.Thread
 				if err := cursor.All(&threads); err != nil {
 					return describeError(err)
@@ -768,8 +770,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 					Secure:      secure,
 				}
 
-				_, err := gorethink.Db(config.RethinkDatabase).Table("threads").Insert(thread).Run(session)
-				if err != nil {
+				if err := gorethink.Db(config.RethinkDatabase).Table("threads").Insert(thread).Exec(session); err != nil {
 					return describeError(err)
 				}
 			} else {
@@ -807,8 +808,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 					update["secure"] = "some"
 				}
 
-				_, err := gorethink.Db(config.RethinkDatabase).Table("threads").Get(thread.ID).Update(update).Run(session)
-				if err != nil {
+				if err := gorethink.Db(config.RethinkDatabase).Table("threads").Get(thread.ID).Update(update).Exec(session); err != nil {
 					return describeError(err)
 				}
 			}
@@ -879,8 +879,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 			}
 
 			// Insert the email
-			_, err = gorethink.Db(config.RethinkDatabase).Table("emails").Insert(es).Run(session)
-			if err != nil {
+			if err := gorethink.Db(config.RethinkDatabase).Table("emails").Insert(es).Run(session); err != nil {
 				return describeError(err)
 			}
 
@@ -927,6 +926,7 @@ func getAccountPublicKey(account *models.Account) (*openpgp.Entity, error) {
 		if err != nil {
 			return nil, err
 		}
+		defer cursor.Close()
 
 		var key *models.Key
 		if err := cursor.One(&key); err != nil {
@@ -940,10 +940,12 @@ func getAccountPublicKey(account *models.Account) (*openpgp.Entity, error) {
 
 		return keyring[0], nil
 	}
+
 	cursor, err := gorethink.Db(cfg.RethinkDatabase).Table("keys").GetAllByIndex("owner", account.ID).Run(session)
 	if err != nil {
 		return nil, err
 	}
+	defer cursor.Close()
 
 	var keys []*models.Key
 	if err := cursor.All(&keys); err != nil {

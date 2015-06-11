@@ -118,6 +118,7 @@ func StartQueue(config *shared.Flags) {
 		if err != nil {
 			return err
 		}
+		defer cursor.Close()
 		var email *models.Email
 		if err := cursor.One(&email); err != nil {
 			return err
@@ -128,6 +129,7 @@ func StartQueue(config *shared.Flags) {
 		if err != nil {
 			return err
 		}
+		defer cursor.Close()
 		var thread *models.Thread
 		if err := cursor.One(&thread); err != nil {
 			return err
@@ -148,6 +150,7 @@ func StartQueue(config *shared.Flags) {
 		if err != nil {
 			return err
 		}
+		defer cursor.Close()
 		var emid []*models.Email
 		if err := cursor.All(&emid); err != nil {
 			return err
@@ -169,6 +172,7 @@ func StartQueue(config *shared.Flags) {
 			if err != nil {
 				return err
 			}
+			defer cursor.Close()
 			if err := cursor.All(&files); err != nil {
 				return err
 			}
@@ -181,6 +185,7 @@ func StartQueue(config *shared.Flags) {
 		if err != nil {
 			return err
 		}
+		defer cursor.Close()
 		var account *models.Account
 		if err := cursor.One(&account); err != nil {
 			return err
@@ -276,6 +281,7 @@ func StartQueue(config *shared.Flags) {
 			if err != nil {
 				return err
 			}
+			defer cursor.Close()
 			var account *models.Account
 			if err := cursor.One(&account); err != nil {
 				return err
@@ -288,6 +294,7 @@ func StartQueue(config *shared.Flags) {
 				if err != nil {
 					return err
 				}
+				defer cursor.Close()
 				if err := cursor.One(&key); err != nil {
 					return err
 				}
@@ -296,6 +303,7 @@ func StartQueue(config *shared.Flags) {
 				if err != nil {
 					return err
 				}
+				defer cursor.Close()
 				var keys []*models.Key
 				if err := cursor.All(&keys); err != nil {
 					return err
