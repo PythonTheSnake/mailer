@@ -4,8 +4,8 @@
 
 SMTP server that handles inbound emails and an outbound email generator.
 
-Uses `lavab/smtpd`, a fork of `bitbucket.org/chrj/smtpd` for inbound email
-handling and Postfix for routing of outbound emails.
+Uses `lavab/smtpd` for inbound email handling and Postfix for routing of
+outbound emails.
 
 ## Requirements
 
