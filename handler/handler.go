@@ -40,7 +40,7 @@ var (
 	session *gorethink.Session
 )
 
-func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelope) error {
+func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 	cfg = config
 
 	// Initialize a new logger
@@ -85,12 +85,12 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 		"addr": config.BindAddress,
 	}).Info("Listening for incoming traffic")
 
-	return func(peer smtpd.Peer, e smtpd.Envelope) error {
+	return func(conn *smtpd.Connection) error {
 		log.Debug("Started parsing")
 
 		// Check recipients for Lavaboom users
 		recipients := []interface{}{}
-		for _, recipient := range e.Recipients {
+		for _, recipient := range conn.Envelope.Recipients {
 			log.Printf("EMAIL TO %s", recipient)
 
 			// Split the email address into username and domain
@@ -117,7 +117,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 		}
 
 		// Fetch the mapping
-		cursor, err := gorethink.Db(config.RethinkDatabase).Table("addresses").GetAll(recipients...).Run(session)
+		cursor, err := gorethink.DB(config.RethinkDatabase).Table("addresses").GetAll(recipients...).Run(session)
 		if err != nil {
 			return describeError(err)
 		}
@@ -134,7 +134,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 		}
 
 		// Fetch accounts
-		cursor, err = gorethink.Db(config.RethinkDatabase).Table("accounts").GetAll(accountIDs...).Run(session)
+		cursor, err = gorethink.DB(config.RethinkDatabase).Table("accounts").GetAll(accountIDs...).Run(session)
 		if err != nil {
 			return describeError(err)
 		}
@@ -168,7 +168,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 
 		// Check in the antispam
 		isSpam := false
-		spamReply, err := spam.Report(string(e.Data))
+		spamReply, err := spam.Report(string(conn.Envelope.Data))
 		if err == nil {
 			log.Print(spamReply.Code)
 			log.Print(spamReply.Message)
@@ -183,7 +183,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 		}
 
 		// Parse the email
-		email, err := ParseEmail(bytes.NewReader(e.Data))
+		email, err := ParseEmail(bytes.NewReader(conn.Envelope.Data))
 		if err != nil {
 			return describeError(err)
 		}
@@ -414,7 +414,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 
 			// Push files into RethinkDB
 			for _, file := range files {
-				if err := gorethink.Db(config.RethinkDatabase).Table("files").Insert(file).Exec(session); err != nil {
+				if err := gorethink.DB(config.RethinkDatabase).Table("files").Insert(file).Exec(session); err != nil {
 					return describeError(err)
 				}
 			}
@@ -544,7 +544,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 				for _, account := range accounts {
 					fid := uniuri.NewLen(uniuri.UUIDLen)
 
-					if err := gorethink.Db(config.RethinkDatabase).Table("files").Insert(&models.File{
+					if err := gorethink.DB(config.RethinkDatabase).Table("files").Insert(&models.File{
 						Resource: models.Resource{
 							ID:           fid,
 							DateCreated:  time.Now(),
@@ -587,7 +587,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 		// Save the email for each recipient
 		for _, account := range accounts {
 			// Get 3 user's labels
-			cursor, err := gorethink.Db(config.RethinkDatabase).Table("labels").GetAllByIndex("nameOwnerBuiltin", []interface{}{
+			cursor, err := gorethink.DB(config.RethinkDatabase).Table("labels").GetAllByIndex("nameOwnerBuiltin", []interface{}{
 				"Inbox",
 				account.ID,
 				true,
@@ -687,7 +687,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 				}
 
 				// Look up the parent
-				cursor, err := gorethink.Db(config.RethinkDatabase).Table("emails").GetAllByIndex("messageIDOwner", []interface{}{
+				cursor, err := gorethink.DB(config.RethinkDatabase).Table("emails").GetAllByIndex("messageIDOwner", []interface{}{
 					irt,
 					account.ID,
 				}).Run(session)
@@ -702,7 +702,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 
 				// Found one = that one is correct
 				if len(emails) == 1 {
-					cursor, err := gorethink.Db(config.RethinkDatabase).Table("threads").Get(emails[0].Thread).Run(session)
+					cursor, err := gorethink.DB(config.RethinkDatabase).Table("threads").Get(emails[0].Thread).Run(session)
 					if err != nil {
 						return describeError(err)
 					}
@@ -715,7 +715,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 
 			if thread == nil {
 				// Match by subject
-				cursor, err := gorethink.Db(config.RethinkDatabase).Table("threads").GetAllByIndex("subjectOwner", []interface{}{
+				cursor, err := gorethink.DB(config.RethinkDatabase).Table("threads").GetAllByIndex("subjectOwner", []interface{}{
 					subjectHash,
 					account.ID,
 				}).Filter(func(row gorethink.Term) gorethink.Term {
@@ -770,7 +770,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 					Secure:      secure,
 				}
 
-				if err := gorethink.Db(config.RethinkDatabase).Table("threads").Insert(thread).Exec(session); err != nil {
+				if err := gorethink.DB(config.RethinkDatabase).Table("threads").Insert(thread).Exec(session); err != nil {
 					return describeError(err)
 				}
 			} else {
@@ -808,7 +808,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 					update["secure"] = "some"
 				}
 
-				if err := gorethink.Db(config.RethinkDatabase).Table("threads").Get(thread.ID).Update(update).Exec(session); err != nil {
+				if err := gorethink.DB(config.RethinkDatabase).Table("threads").Get(thread.ID).Update(update).Exec(session); err != nil {
 					return describeError(err)
 				}
 			}
@@ -879,7 +879,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 			}
 
 			// Insert the email
-			if err := gorethink.Db(config.RethinkDatabase).Table("emails").Insert(es).Exec(session); err != nil {
+			if err := gorethink.DB(config.RethinkDatabase).Table("emails").Insert(es).Exec(session); err != nil {
 				return describeError(err)
 			}
 
@@ -922,7 +922,7 @@ func PrepareHandler(config *shared.Flags) func(peer smtpd.Peer, env smtpd.Envelo
 
 func getAccountPublicKey(account *models.Account) (*openpgp.Entity, error) {
 	if account.PublicKey != "" {
-		cursor, err := gorethink.Db(cfg.RethinkDatabase).Table("keys").Get(account.PublicKey).Run(session)
+		cursor, err := gorethink.DB(cfg.RethinkDatabase).Table("keys").Get(account.PublicKey).Run(session)
 		if err != nil {
 			return nil, err
 		}
@@ -941,7 +941,7 @@ func getAccountPublicKey(account *models.Account) (*openpgp.Entity, error) {
 		return keyring[0], nil
 	}
 
-	cursor, err := gorethink.Db(cfg.RethinkDatabase).Table("keys").GetAllByIndex("owner", account.ID).Run(session)
+	cursor, err := gorethink.DB(cfg.RethinkDatabase).Table("keys").GetAllByIndex("owner", account.ID).Run(session)
 	if err != nil {
 		return nil, err
 	}

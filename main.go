@@ -139,7 +139,25 @@ func main() {
 
 	server := &smtpd.Server{
 		WelcomeMessage: *welcomeMessage,
-		Handler:        h,
+
+		WrapperChain: []smtpd.Wrapper{
+			smtpd.Wrapper(func(next smtpd.Wrapped) smtpd.Wrapped {
+				return smtpd.Wrapped(func() {
+					rc.CapturePanic(next, nil)
+				})
+			}),
+		},
+		DeliveryChain: []smtpd.Middleware{
+			smtpd.Middleware(func(next smtpd.Handler) smtpd.Handler {
+				return smtpd.Handler(func(conn *smtpd.Connection) {
+					if err := h(conn); err != nil {
+						conn.Error(err)
+					} else {
+						next(conn)
+					}
+				})
+			}),
+		},
 	}
 
 	outbound.StartQueue(config)

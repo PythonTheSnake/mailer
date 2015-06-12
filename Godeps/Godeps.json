@@ -1,9 +1,6 @@
 {
 	"ImportPath": "github.com/lavab/mailer",
 	"GoVersion": "go1.4",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/go.crypto/pbkdf2",
@@ -14,11 +11,6 @@
 			"ImportPath": "code.google.com/p/go.crypto/scrypt",
 			"Comment": "null-212",
 			"Rev": "1064b89a6fb591df0dd65422295b8498916b092f"
-		},
-		{
-			"ImportPath": "code.google.com/p/goprotobuf/proto",
-			"Comment": "go.r60-163",
-			"Rev": "9352842ae63ee1d7e74e074ce7bb10370c4b6b9e"
 		},
 		{
 			"ImportPath": "code.google.com/p/rsc/gf256",
@@ -41,8 +33,8 @@
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.6.4",
-			"Rev": "58f778a886b1e483dccc3b61085ccf347bf1a37e"
+			"Comment": "v0.8.2-10-g21d4508",
+			"Rev": "21d4508646ae56d79244bd9046c1df63a5fa8c37"
 		},
 		{
 			"ImportPath": "github.com/alexcesaro/quotedprintable",
@@ -64,6 +56,10 @@
 			"Rev": "9bf7bff48b0388cb75991e58c6df7d13e982f1f2"
 		},
 		{
+			"ImportPath": "github.com/cenkalti/backoff",
+			"Rev": "6c45d6bc1e78d94431dff8fc28a99f20bafa355a"
+		},
+		{
 			"ImportPath": "github.com/coreos/etcd/etcdserver/etcdhttp/httptypes",
 			"Comment": "v2.0.4-312-g9a33678",
 			"Rev": "9a33678878e57410a67d07d39fa8502e85797aeb"
@@ -80,8 +76,8 @@
 		},
 		{
 			"ImportPath": "github.com/dancannon/gorethink",
-			"Comment": "v0.6.3-13-g67d2428",
-			"Rev": "67d2428ba6800ad5a3441f8740dbc77070e253b1"
+			"Comment": "v1.0.0-rc.2",
+			"Rev": "c097463176129ff5598c1a57693f1bfa13d99ba5"
 		},
 		{
 			"ImportPath": "github.com/dchest/uniuri",
@@ -108,6 +104,10 @@
 			"Rev": "cab5c36e945092b6fb703b6c785bb06fd0537a0d"
 		},
 		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "34a5f244f1c01cdfee8e60324258cfbb97a42aec"
+		},
+		{
 			"ImportPath": "github.com/gorilla/schema",
 			"Rev": "c8422571edf3131506bab7df27e18980fe2598d5"
 		},
@@ -118,33 +118,33 @@
 		},
 		{
 			"ImportPath": "github.com/lavab/api/cache",
-			"Comment": "2.0.2-12-g37d96a3",
-			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
+			"Comment": "2.0.2-13-gf67ca9f",
+			"Rev": "f67ca9f3f3af5e61ef95dbf74bf215c0c7ffab34"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/db",
-			"Comment": "2.0.2-12-g37d96a3",
-			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
+			"Comment": "2.0.2-13-gf67ca9f",
+			"Rev": "f67ca9f3f3af5e61ef95dbf74bf215c0c7ffab34"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/env",
-			"Comment": "2.0.2-12-g37d96a3",
-			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
+			"Comment": "2.0.2-13-gf67ca9f",
+			"Rev": "f67ca9f3f3af5e61ef95dbf74bf215c0c7ffab34"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/factor",
-			"Comment": "2.0.2-12-g37d96a3",
-			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
+			"Comment": "2.0.2-13-gf67ca9f",
+			"Rev": "f67ca9f3f3af5e61ef95dbf74bf215c0c7ffab34"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/models",
-			"Comment": "2.0.2-12-g37d96a3",
-			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
+			"Comment": "2.0.2-13-gf67ca9f",
+			"Rev": "f67ca9f3f3af5e61ef95dbf74bf215c0c7ffab34"
 		},
 		{
 			"ImportPath": "github.com/lavab/api/utils",
-			"Comment": "2.0.2-12-g37d96a3",
-			"Rev": "37d96a377776e9a3009e6ce2bae986d004a61c6c"
+			"Comment": "2.0.2-13-gf67ca9f",
+			"Rev": "f67ca9f3f3af5e61ef95dbf74bf215c0c7ffab34"
 		},
 		{
 			"ImportPath": "github.com/lavab/flag",
@@ -160,7 +160,7 @@
 		},
 		{
 			"ImportPath": "github.com/lavab/smtpd",
-			"Rev": "bb4ad0dc2f261ef1e8bc7d06b105cba5a5820259"
+			"Rev": "5c6c26f9413d8b0883724627a404d9d9bfdd7cb0"
 		},
 		{
 			"ImportPath": "github.com/lavab/webhook/events",

@@ -114,7 +114,7 @@ func StartQueue(config *shared.Flags) {
 		}
 
 		// Get the email from the database
-		cursor, err := gorethink.Db(config.RethinkDatabase).Table("emails").Get(id).Run(session)
+		cursor, err := gorethink.DB(config.RethinkDatabase).Table("emails").Get(id).Run(session)
 		if err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ func StartQueue(config *shared.Flags) {
 		}
 
 		// Get the thread
-		cursor, err = gorethink.Db(config.RethinkDatabase).Table("threads").Get(email.Thread).Run(session)
+		cursor, err = gorethink.DB(config.RethinkDatabase).Table("threads").Get(email.Thread).Run(session)
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ func StartQueue(config *shared.Flags) {
 		inReplyTo := ""
 
 		// Fetch received emails in the thread
-		cursor, err = gorethink.Db(config.RethinkDatabase).Table("emails").GetAllByIndex("threadStatus", []interface{}{
+		cursor, err = gorethink.DB(config.RethinkDatabase).Table("emails").GetAllByIndex("threadStatus", []interface{}{
 			thread.ID,
 			"received",
 		}).Pluck("date_created", "message_id", "from").OrderBy(gorethink.Desc(gorethink.Row.Field("date_created"))).
@@ -168,7 +168,7 @@ func StartQueue(config *shared.Flags) {
 			for _, v := range email.Files {
 				filesList = append(filesList, v)
 			}
-			cursor, err = gorethink.Db(config.RethinkDatabase).Table("files").GetAll(filesList...).Run(session)
+			cursor, err = gorethink.DB(config.RethinkDatabase).Table("files").GetAll(filesList...).Run(session)
 			if err != nil {
 				return err
 			}
@@ -181,7 +181,7 @@ func StartQueue(config *shared.Flags) {
 		}
 
 		// Fetch the owner
-		cursor, err = gorethink.Db(config.RethinkDatabase).Table("accounts").Get(email.Owner).Run(session)
+		cursor, err = gorethink.DB(config.RethinkDatabase).Table("accounts").Get(email.Owner).Run(session)
 		if err != nil {
 			return err
 		}
@@ -277,7 +277,7 @@ func StartQueue(config *shared.Flags) {
 			}
 
 			// Fetch owner's account
-			cursor, err = gorethink.Db(config.RethinkDatabase).Table("accounts").Get(email.Owner).Run(session)
+			cursor, err = gorethink.DB(config.RethinkDatabase).Table("accounts").Get(email.Owner).Run(session)
 			if err != nil {
 				return err
 			}
@@ -290,7 +290,7 @@ func StartQueue(config *shared.Flags) {
 			// Get owner's key
 			var key *models.Key
 			if account.PublicKey != "" {
-				cursor, err = gorethink.Db(config.RethinkDatabase).Table("keys").Get(account.PublicKey).Run(session)
+				cursor, err = gorethink.DB(config.RethinkDatabase).Table("keys").Get(account.PublicKey).Run(session)
 				if err != nil {
 					return err
 				}
@@ -299,7 +299,7 @@ func StartQueue(config *shared.Flags) {
 					return err
 				}
 			} else {
-				cursor, err = gorethink.Db(config.RethinkDatabase).Table("keys").GetAllByIndex("owner", account.ID).Run(session)
+				cursor, err = gorethink.DB(config.RethinkDatabase).Table("keys").GetAllByIndex("owner", account.ID).Run(session)
 				if err != nil {
 					return err
 				}
@@ -399,7 +399,7 @@ func StartQueue(config *shared.Flags) {
 				})
 
 				// Replace the file in database
-				err = gorethink.Db(config.RethinkDatabase).Table("files").Get(file.ID).Replace(&models.File{
+				err = gorethink.DB(config.RethinkDatabase).Table("files").Get(file.ID).Replace(&models.File{
 					Resource: models.Resource{
 						ID:           file.ID,
 						DateCreated:  file.DateCreated,
@@ -427,7 +427,7 @@ func StartQueue(config *shared.Flags) {
 				return err
 			}
 
-			err = gorethink.Db(config.RethinkDatabase).Table("emails").Get(email.ID).Replace(&models.Email{
+			err = gorethink.DB(config.RethinkDatabase).Table("emails").Get(email.ID).Replace(&models.Email{
 				Resource: models.Resource{
 					ID:           email.ID,
 					DateCreated:  email.DateCreated,
@@ -607,7 +607,7 @@ func StartQueue(config *shared.Flags) {
 				}).Error("Unable to publish a bounce msg")
 			}
 		}
-		err = gorethink.Db(config.RethinkDatabase).Table("emails").Get(email.ID).Update(map[string]interface{}{
+		err = gorethink.DB(config.RethinkDatabase).Table("emails").Get(email.ID).Update(map[string]interface{}{
 			"status": "sent",
 		}).Exec(session)
 		if err != nil {
