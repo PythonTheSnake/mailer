@@ -568,10 +568,29 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 				}
 			}
 		} else if kind == "pgpmime" {
+			subject = email.Headers.Get("Subject")
+
+			var (
+				foundManifest = false
+				foundBody     = false
+			)
+
 			for _, child := range email.Children {
-				if strings.Index(child.Headers.Get("Content-Type"), "application/pgp-encrypted") != -1 {
-					body = string(child.Body)
-					subject = child.Headers.Get("Subject")
+				if !foundManifest {
+					if strings.Index(child.Headers.Get("Content-Type"), "application/pgp-encrypted") != -1 {
+						manifest = string(child.Body)
+						foundManifest = true
+					}
+				}
+
+				if !foundBody {
+					if strings.Index(child.Headers.Get("Content-Type"), "application/pgp-encrypted") == -1 {
+						body = string(child.Body)
+						foundBody = true
+					}
+				}
+
+				if foundManifest && foundBody {
 					break
 				}
 			}
