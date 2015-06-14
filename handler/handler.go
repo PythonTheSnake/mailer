@@ -870,6 +870,12 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 				cc = cc2
 			}
 
+			// Determine secure field value
+			emailSecure := true
+			if initialKind == "raw" {
+				emailSecure = false
+			}
+
 			// Prepare a new email
 			es := &models.Email{
 				Resource: models.Resource{
@@ -887,6 +893,7 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 				Thread:    thread.ID,
 				MessageID: strings.Trim(email.Headers.Get("Message-ID"), "<>"), // todo: create a message id parser
 				Status:    "received",
+				Secure:    emailSecure,
 			}
 
 			if fileIDs != nil {

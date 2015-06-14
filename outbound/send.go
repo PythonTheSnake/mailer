@@ -445,6 +445,7 @@ func StartQueue(config *shared.Flags) {
 				Body:      string(encryptedBody),
 				Thread:    email.Thread,
 				MessageID: email.MessageID,
+				Secure:    email.Secure,
 			}).Exec(session)
 			if err != nil {
 				return err
