@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
-	"github.com/alexcesaro/quotedprintable"
 	"github.com/bitly/go-nsq"
 	"github.com/blang/semver"
 	"github.com/dancannon/gorethink"
@@ -436,14 +435,7 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 			// Generate the manifest
 			emailID := uniuri.NewLen(uniuri.UUIDLen)
 			subject = "Encrypted message (" + emailID + ")"
-
-			s2 := email.Headers.Get("subject")
-			if len(s2) > 1 && s2[0] == '=' && s2[1] == '?' {
-				s2, _, err = quotedprintable.DecodeHeader(s2)
-				if err != nil {
-					return describeError(err)
-				}
-			}
+			originalSubject := email.Headers.Get("subject")
 
 			var fm *mail.Address
 			if len(from) > 0 {
@@ -461,7 +453,7 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 				From:    fm,
 				To:      to,
 				CC:      cc,
-				Subject: s2,
+				Subject: originalSubject,
 				Parts:   parts,
 			}
 
@@ -596,13 +588,6 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 			}
 		}
 
-		if len(subject) > 1 && subject[0] == '=' && subject[1] == '?' {
-			subject, _, err = quotedprintable.DecodeHeader(subject)
-			if err != nil {
-				return describeError(err)
-			}
-		}
-
 		// Save the email for each recipient
 		for _, account := range accounts {
 			// Get 3 user's labels
@@ -640,13 +625,6 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 				subject := email.Headers.Get("Subject")
 				if subject == "" {
 					subject = "<no subject>"
-				}
-
-				if len(subject) > 1 && subject[0] == '=' && subject[1] == '?' {
-					subject, _, err = quotedprintable.DecodeHeader(subject)
-					if err != nil {
-						return describeError(err)
-					}
 				}
 
 				subject = shared.StripPrefixes(strings.TrimSpace(subject))
