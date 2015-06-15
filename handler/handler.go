@@ -206,6 +206,9 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 		// Copy kind to a second variable for later parsing
 		initialKind := kind
 
+		// Generate an ID for the email
+		emailID := uniuri.NewLen(uniuri.UUIDLen)
+
 		// Debug the kind
 		log.Debugf("Email is %s", kind)
 
@@ -334,10 +337,11 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 									Name:         id + ".pgp",
 									Owner:        account.ID,
 								},
-								Encrypted: models.Encrypted{
-									Encoding: "application/pgp-encrypted",
-									Data:     string(encryptedBody),
+								Meta: map[string]interface{}{
+									"content_type": "application/pgp-encrypted",
 								},
+								Tags: []string{"attachment", "email:" + emailID},
+								Body: encryptedBody,
 							})
 
 							if _, ok := fileIDs[account.ID]; !ok {
@@ -433,7 +437,6 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 			}
 
 			// Generate the manifest
-			emailID := uniuri.NewLen(uniuri.UUIDLen)
 			subject = "Encrypted message (" + emailID + ")"
 			originalSubject := email.Headers.Get("subject")
 
@@ -544,10 +547,11 @@ func PrepareHandler(config *shared.Flags) func(conn *smtpd.Connection) error {
 							Name:         cdparams["filename"],
 							Owner:        account.ID,
 						},
-						Encrypted: models.Encrypted{
-							Encoding: "application/pgp-encrypted",
-							Data:     string(child.Body),
+						Meta: map[string]interface{}{
+							"content_type": "application/pgp-encrypted",
 						},
+						Tags: []string{"attachment", "email:" + emailID},
+						Body: child.Body,
 					}).Exec(session); err != nil {
 						return describeError(err)
 					}

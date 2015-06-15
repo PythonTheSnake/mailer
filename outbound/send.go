@@ -236,9 +236,9 @@ func StartQueue(config *shared.Flags) {
 				emailFiles := []*emailFile{}
 				for _, file := range files {
 					emailFiles = append(emailFiles, &emailFile{
-						Encoding: file.Encoding,
+						Encoding: file.Meta.ContentType(),
 						Name:     file.Name,
-						Body:     base64.StdEncoding.EncodeToString([]byte(file.Data)),
+						Body:     base64.StdEncoding.EncodeToString([]byte(file.Body)),
 					})
 				}
 
@@ -375,13 +375,13 @@ func StartQueue(config *shared.Flags) {
 			// Encrypt the attachments
 			for _, file := range files {
 				// Encrypt the attachment
-				cipher, err := shared.EncryptAndArmor([]byte(file.Data), keyring)
+				cipher, err := shared.EncryptAndArmor([]byte(file.Body), keyring)
 				if err != nil {
 					return err
 				}
 
 				// Hash it
-				hash := sha256.Sum256([]byte(file.Data))
+				hash := sha256.Sum256([]byte(file.Body))
 
 				// Generate a random ID
 				id := uniuri.NewLen(20)
@@ -391,8 +391,8 @@ func StartQueue(config *shared.Flags) {
 					ID:          id,
 					Hash:        hex.EncodeToString(hash[:]),
 					Filename:    file.Name,
-					ContentType: file.Encoding,
-					Size:        len(file.Data),
+					ContentType: file.Meta.ContentType(),
+					Size:        len(file.Body),
 				})
 
 				// Replace the file in database
@@ -404,10 +404,11 @@ func StartQueue(config *shared.Flags) {
 						Name:         id + ".pgp",
 						Owner:        account.ID,
 					},
-					Encrypted: models.Encrypted{
-						Encoding: "application/pgp-encrypted",
-						Data:     string(cipher),
+					Meta: map[string]interface{}{
+						"content_type": "application/pgp-encrypted",
 					},
+					Body: cipher,
+					Tags: file.Tags,
 				}).Exec(session)
 				if err != nil {
 					return err
@@ -518,9 +519,9 @@ func StartQueue(config *shared.Flags) {
 				emailFiles := []*emailFile{}
 				for _, file := range files {
 					emailFiles = append(emailFiles, &emailFile{
-						Encoding: file.Encoding,
+						Encoding: file.Meta.ContentType(),
 						Name:     file.Name,
-						Body:     file.Data,
+						Body:     string(file.Body),
 					})
 				}
 
