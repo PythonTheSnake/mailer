@@ -1,79 +1,60 @@
 package main
 
 import (
-	"errors"
-	"fmt"
+	"crypto/tls"
+	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/bitly/go-nsq"
+	r "github.com/dancannon/gorethink"
 	"github.com/getsentry/raven-go"
-	"github.com/lavab/flag"
-	"github.com/lavab/smtpd"
+	"github.com/hashicorp/golang-lru"
+	"github.com/lavab/go-spamc"
+	"github.com/namsral/flag"
 
-	"github.com/lavab/mailer/handler"
-	"github.com/lavab/mailer/outbound"
-	"github.com/lavab/mailer/shared"
+	"github.com/lavab/mailer/models"
 )
 
 var (
-	// Flags used to enable functionality in the flag package
-	configFlag   = flag.String("config", "", "Config file to load")
-	etcdAddress  = flag.String("etcd_address", "", "etcd peer addresses split by commas")
-	etcdCAFile   = flag.String("etcd_ca_file", "", "etcd path to server cert's ca")
-	etcdCertFile = flag.String("etcd_cert_file", "", "etcd path to client cert file")
-	etcdKeyFile  = flag.String("etcd_key_file", "", "etcd path to client key file")
-	etcdPath     = flag.String("etcd_path", "mailer/", "Path of the keys")
+	// Enable config file loading
+	configFlag = flag.String("config", "", "Config file to load")
 
-	// General settings
-	bindAddress      = flag.String("bind", ":25", "Address used to bind")
-	welcomeMessage   = flag.String("welcome", "Lavaboom Mailer ready.", "Welcome message displayed upon connecting to the server")
-	hostname         = flag.String("hostname", "localhost", "Server hostname")
-	logFormatterType = flag.String("log", "text", "Log formatter type. Either \"json\" or \"text\"")
-	forceColors      = flag.Bool("force_colors", false, "Force colored prompt?")
+	// Sentry crash reporting
+	ravenDSN = flag.String("raven_dsn", "", "DSN of the Raven connection")
 
 	// RethinkDB connection settings
-	rethinkdbAddress = flag.String("rethinkdb_address", func() string {
-		address := os.Getenv("RETHINKDB_PORT_28015_TCP_ADDR")
-		if address == "" {
-			address = "127.0.0.1"
-		}
-		return address + ":28015"
-	}(), "Address of the RethinkDB database")
-	rethinkdbKey      = flag.String("rethinkdb_key", os.Getenv("RETHINKDB_AUTHKEY"), "Authentication key of the RethinkDB database")
-	rethinkdbDatabase = flag.String("rethinkdb_db", func() string {
-		database := os.Getenv("RETHINKDB_DB")
-		if database == "" {
-			database = "dev"
-		}
-		return database
-	}(), "Database name on the RethinkDB server")
+	rethinkdbAddress  = flag.String("rethinkdb_address", "127.0.0.1:28015", "Address of the RethinkDB database")
+	rethinkdbDatabase = flag.String("rethinkdb_db", "prod", "Database name on the RethinkDB server")
 
 	// nsqd and nsqlookupd addresses
-	nsqdAddress = flag.String("nsqd_address", func() string {
-		address := os.Getenv("NSQD_PORT_4150_TCP_ADDR")
-		if address == "" {
-			address = "127.0.0.1"
-		}
-		return address + ":4150"
-	}(), "Address of the nsqd server")
-	lookupdAddress = flag.String("lookupd_address", func() string {
-		address := os.Getenv("NSQLOOKUPD_PORT_4161_TCP_ADDR")
-		if address == "" {
-			address = "127.0.0.1"
-		}
-		return address + ":4161"
-	}(), "Address of the lookupd server")
+	nsqdAddress    = flag.String("nsqd_address", "127.0.0.1:4150", "Address of the nsqd server")
+	lookupdAddress = flag.String("lookupd_address", "127.0.0.1:4161", "Address of the lookupd server")
 
-	// smtp relay and spamd addresses
-	smtpAddress  = flag.String("smtp_address", "127.0.0.1:2525", "Address of the SMTP server used for message relaying")
-	spamdAddress = flag.String("spamd_address", "127.0.0.1:783", "Address of the spamd server used for antispam")
+	// Handler settings
+	bindAddresses  = flag.String("handler_addresses", ":25,:587", "Addresses used to bind the handler")
+	welcomeMessage = flag.String("handler_welcome", "Welcome to Lavaboom!", "Welcome message displayed upon connecting to the server.")
+	hostname       = flag.String("handler_hostname", "localhost", "Hostname of the mailer")
+	readTimeout    = flag.Int("handler_read_timeout", 0, "Connection read timeout expressed in seconds")
+	writeTimeout   = flag.Int("handler_write_timeout", 0, "Connection write timeout expressed in seconds")
+	dataTimeout    = flag.Int("handler_data_timeout", 0, "Data stream timeout expressed in seconds")
+	maxConnections = flag.Int("handler_max_connections", 0, "Max connections that can be handled by the mailer")
+	maxMessageSize = flag.Int("handler_max_message_size", 0, "Max message size accepted by the mailer in bytes")
+	maxRecipients  = flag.Int("handler_max_recipients", 0, "Max recipients count per envelope")
+	enableTLS      = flag.Bool("handler_enable_tls", false, "Enable STARTTLS?")
+	tlsCertificate = flag.String("handler_tls_cert", "", "Path of the TLS certificate to load")
+	tlsKey         = flag.String("handler_tls_key", "", "Path of the TLS key to load")
+	spamdAddress   = flag.String("spamd_address", "127.0.0.1:783", "Address of the spamd server to use")
 
-	// dkim selector, domain and key
-	dkimKey      = flag.String("dkim_key", "", "Path of the DKIM private file")
-	dkimSelector = flag.String("dkim_selector", "default", "DKIM selector")
+	// Outbound email handling settings
+	smtpdAddress        = flag.String("smtpd_address", "127.0.0.1:2525", "Address of the SMTP relay to use")
+	dkimLRUSize         = flag.Int("dkim_lru_size", 128, "Size of the LRU cache with DKIM keys")
+	consumerConcurrency = flag.Int("consumer_concurrency", 10, "Concurrency of the consumer that sends out emails")
+)
 
-	// raven dsn
-	ravenDSN = flag.String("raven_dsn", "", "DSN of the Raven connection")
+var (
+	stdLogger = log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)
 )
 
 func main() {
@@ -95,72 +76,128 @@ func main() {
 		}
 	}
 
-	defer func() {
-		var packet *raven.Packet
-		p := recover()
-		switch rval := p.(type) {
-		case nil:
-			return
-		case error:
-			packet = raven.NewPacket(rval.Error(), raven.NewException(rval, raven.NewStacktrace(2, 3, nil)))
-		default:
-			rvalStr := fmt.Sprint(rval)
-			packet = raven.NewPacket(rvalStr, raven.NewException(errors.New(rvalStr), raven.NewStacktrace(2, 3, nil)))
-		}
+	defer capturePanic(rc)
 
-		_, ch := rc.Capture(packet, nil)
-		<-ch
-		panic(p)
+	// Connect to RethinkDB
+	session, err := r.Connect(r.ConnectOpts{
+		Address: *rethinkdbAddress,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create mailer-specific tables
+	r.DB(*rethinkdbDatabase).TableCreate("dkim_keys").Exec(session)
+
+	// Create a LRU cache with DKIM signers
+	dc, err := lru.New(*dkimLRUSize)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Clear all changed keys when they change
+	go func() {
+		cursor, err := r.DB(*rethinkdbDatabase).Table("dkim_keys").Changes().Run(session)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var change struct {
+			NewValue *models.DKIMKey `gorethink:"new_val"`
+			OldValue *models.DKIMKey `gorethink:"old_val"`
+		}
+		for cursor.Next(&change) {
+			if change.OldValue != nil {
+				dc.Remove(change.OldValue.ID)
+			}
+
+			if change.OldValue == nil && change.NewValue != nil {
+				dc.Remove(change.NewValue.ID)
+			}
+		}
+		if err := cursor.Err(); err != nil {
+			log.Fatal(err)
+		}
 	}()
 
-	config := &shared.Flags{
-		EtcdAddress:      *etcdAddress,
-		EtcdCAFile:       *etcdCAFile,
-		EtcdCertFile:     *etcdCertFile,
-		EtcdKeyFile:      *etcdKeyFile,
-		EtcdPath:         *etcdPath,
-		BindAddress:      *bindAddress,
-		WelcomeMessage:   *welcomeMessage,
-		Hostname:         *hostname,
-		LogFormatterType: *logFormatterType,
-		ForceColors:      *forceColors,
-		RethinkAddress:   *rethinkdbAddress,
-		RethinkKey:       *rethinkdbKey,
-		RethinkDatabase:  *rethinkdbDatabase,
-		NSQDAddress:      *nsqdAddress,
-		LookupdAddress:   *lookupdAddress,
-		SMTPAddress:      *smtpAddress,
-		SpamdAddress:     *spamdAddress,
-		DKIMKey:          *dkimKey,
-		DKIMSelector:     *dkimSelector,
+	// Create a new NSQ producer
+	producer, err := nsq.NewProducer(*nsqdAddress, nsq.NewConfig())
+	if err != nil {
+		log.Fatal(err)
+	}
+	producer.SetLogger(stdLogger, nsq.LogLevelWarning)
+
+	// Create a new NSQ consumer
+	consumer, err := nsq.NewConsumer("send_email", "receive", nsq.NewConfig())
+	if err != nil {
+		log.Fatal(err)
+	}
+	consumer.SetLogger(stdLogger, nsq.LogLevelWarning)
+	consumer.AddConcurrentHandlers(&outbound{
+		SmtpdAddress: *smtpdAddress,
+		DKIM:         dc,
+		Raven:        rc,
+		RethinkDB:    session,
+	}, *consumerConcurrency)
+	if err := consumer.ConnectToNSQLookupd(*lookupdAddress); err != nil {
+		log.Fatal(err)
 	}
 
-	h := handler.PrepareHandler(config)
+	// Connect to spamd
+	spam := spamc.New(*spamdAddress, 10)
 
-	server := &smtpd.Server{
+	// Load TLS cert and key
+	var tlsConfig *tls.Config
+	if *enableTLS {
+		cert, err := ioutil.ReadFile(*tlsCertificate)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		key, err := ioutil.ReadFile(*tlsKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		pair, err := tls.X509KeyPair(cert, key)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		tlsConfig = &tls.Config{
+			Certificates: []tls.Certificate{pair},
+		}
+	}
+
+	// Create a handler
+	h := &handler{
 		WelcomeMessage: *welcomeMessage,
+		Hostname:       *hostname,
+		ReadTimeout:    *readTimeout,
+		WriteTimeout:   *writeTimeout,
+		DataTimeout:    *dataTimeout,
+		MaxConnections: *maxConnections,
+		MaxMessageSize: *maxMessageSize,
+		MaxRecipients:  *maxRecipients,
 
-		WrapperChain: []smtpd.Wrapper{
-			smtpd.Wrapper(func(next smtpd.Wrapped) smtpd.Wrapped {
-				return smtpd.Wrapped(func() {
-					rc.CapturePanic(next, nil)
-				})
-			}),
-		},
-		DeliveryChain: []smtpd.Middleware{
-			smtpd.Middleware(func(next smtpd.Handler) smtpd.Handler {
-				return smtpd.Handler(func(conn *smtpd.Connection) {
-					if err := h(conn); err != nil {
-						conn.Error(err)
-					} else {
-						next(conn)
-					}
-				})
-			}),
-		},
+		TLSConfig: tlsConfig,
+		RethinkDB: session,
+		Producer:  producer,
+		Raven:     rc,
+		Spam:      spam,
 	}
 
-	outbound.StartQueue(config)
-
-	server.ListenAndServe(*bindAddress)
+	// Split bind addresses and serve them
+	addresses := strings.Split(*bindAddresses, ",")
+	for i := 0; i < len(addresses)-1; i++ {
+		go func(address string) {
+			log.Printf("Listening to %s", address)
+			if err := h.ListenAndServe(address); err != nil {
+				log.Fatal(err)
+			}
+		}(addresses[i])
+	}
+	log.Printf("Listening to %s", addresses[len(addresses)-1])
+	if err := h.ListenAndServe(addresses[len(addresses)-1]); err != nil {
+		log.Fatal(err)
+	}
 }
