@@ -285,7 +285,7 @@ func (o *outbound) SendEmail(email *models.Email) error {
 		// parts[1] contains the domain name. get the signer
 		ds, err := o.getDKIMKey(parts[1])
 		if err != nil {
-			stdLogger.Printf("[%s] ", email.ID, err)
+			stdLogger.Printf("[%s] %s", email.ID, err)
 		} else {
 			// Sign it
 			body, err = ds.Sign(body)
