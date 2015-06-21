@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"net/mail"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/bitly/go-nsq"
 	r "github.com/dancannon/gorethink"
+	"github.com/dchest/uniuri"
 	"github.com/getsentry/raven-go"
 	"github.com/lavab/api/models"
 	"github.com/lavab/api/utils"
@@ -80,6 +82,10 @@ type statePair struct {
 	Account *models.Account
 }
 
+type stateFile struct {
+	Body []byte
+}
+
 func (h *handler) HandleRecipient(next func(conn *smtpd.Connection)) func(conn *smtpd.Connection) {
 	return func(conn *smtpd.Connection) {
 		// Prepare the context
@@ -148,6 +154,77 @@ func (h *handler) HandleRecipient(next func(conn *smtpd.Connection)) func(conn *
 
 func (h *handler) HandleDelivery(next func(conn *smtpd.Connection)) func(conn *smtpd.Connection) {
 	return func(conn *smtpd.Connection) {
+		// Context variables
+		var (
+			isSpam = false
+			ctxID  = uniuri.NewLen(uniuri.UUIDLen)
+		)
+
+		// Check in antispam
+		spamReply, err := h.Spam.Report(string(conn.Envelope.Data))
+		if err == nil {
+			log.Printf("[%s] %s", ctxID, spamReply.Code)
+			log.Printf("[%s] %s", ctxID, spamReply.Message)
+			log.Printf("[%s] %s", ctxID, spamReply.Vars)
+		}
+		if spamReply.Code == spamc.EX_OK {
+			if spam, ok := spamReply.Vars["isSpam"]; ok && spam.(bool) {
+				isSpam = true
+			}
+		}
+
+		// Parse the email
+		root, err := ParseEmail(bytes.NewReader(conn.Envelope.Data))
+		if err != nil {
+			conn.Error(err)
+			return
+		}
+
+		// Prepare the context
+		ctx := &handlerContext{
+			ID:   ctxID,
+			Root: root,
+		}
+
+		// Determine email's kind
+		if err := ctx.DetermineKind(); err != nil {
+			conn.Error(err)
+			return
+		}
+
+		// Parse From, To and CC
+		if err := ctx.ParseMeta(); err != nil {
+			conn.Error(err)
+			return
+		}
+
+		// Branch out into pgpmime, raw or manifest
+		switch kind {
+		case "raw":
+			if err := ctx.ParseRaw(); err != nil {
+				conn.Error(err)
+				return
+			}
+		case "pgpmime":
+			if err := ctx.ParsePGP(); err != nil {
+				conn.Error(err)
+				return
+			}
+		case "manifest":
+			if err := ctx.ParseManifest(); err != nil {
+				conn.Error(err)
+				return
+			}
+		}
+
+		// Save per user
+
+		// Branch out again - raw or not
+
+		// Encrypt if raw
+
+		// Write to database
+
 		next(conn)
 	}
 }
