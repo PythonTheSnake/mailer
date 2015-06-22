@@ -315,6 +315,16 @@ func (o *outbound) SendEmail(email *models.Email) error {
 			recipients = append(recipients, cca.Address)
 		}
 	}
+	if email.BCC != nil && len(email.BCC) > 0 {
+		for _, bcc := range email.BCC {
+			bcca, err := mail.ParseAddress(bcc)
+			if err != nil {
+				return err
+			}
+
+			recipients = append(recipients, bcca.Address)
+		}
+	}
 
 	// Then send it to smtpd
 	if err := smtp.SendMail(o.SmtpdAddress, nil, fromAddr.Address, recipients, body); err != nil {
