@@ -12,6 +12,7 @@ import (
 	"net/mail"
 	"strings"
 
+	"github.com/dchest/uniuri"
 	"gopkg.in/alexcesaro/quotedprintable.v2"
 )
 
@@ -19,6 +20,56 @@ type message struct {
 	Headers  mail.Header
 	Body     []byte
 	Children []*Message
+}
+
+func (m *message) Encode() []byte {
+	result := &bytes.Buffer{}
+
+	// Write headers
+	for k, vv := range headers {
+		for _, v := range vv {
+			result.WriteString(k)
+			result.WriteString(": ")
+			result.WriteString(v)
+			result.WriteString("\r\n")
+		}
+	}
+
+	// Start the body
+	result.WriteString("\r\n")
+
+	// Get the Content-Type
+	contentType := m.Headers.Get("Content-Type")
+
+	// If it starts with multipart, then start writing multipart
+	if strings.HasPrefix(contentType, "multipart/") {
+		// Generate a new boundary
+		boundary := uniuri.NewLen(uniuri.UUIDLen)
+
+		// Write the children
+		for _, child := range m.Children {
+			// Write the first boundary
+			result.WriteString("--")
+			result.WriteString(boundary)
+			result.WriteString("\r\n")
+
+			// Write the child
+			result.Write(child.Encode())
+		}
+
+		// End the multipart
+		result.WriteString("--")
+		result.WriteString(bondary)
+		result.WriteString("--\r\n")
+	} else {
+		// Write the body
+		result.Write(m.Body)
+
+		// Write a CRLFne
+		result.WriteString("\r\n")
+	}
+
+	return result.Bytes()
 }
 
 func ParseEmail(input io.Reader) (*message, error) {
