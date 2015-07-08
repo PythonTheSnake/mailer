@@ -55,5 +55,5 @@ mailer \
 
 ## License
 
-This project is licensed under the MIT license. Check `license` for more
+This project is licensed under the GPL v3 license. Check `license` for more
 information.
