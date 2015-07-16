@@ -194,7 +194,7 @@ func StartQueue(config *shared.Flags) {
 		ctxFrom := email.From
 
 		// Check if charset is set
-		if !strings.Contains(email.ContentType, "; charset=") {
+		if !strings.Contains(email.ContentType, "charset=") {
 			email.ContentType += "; charset=utf-8"
 		}
 
