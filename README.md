@@ -1,3 +1,4 @@
+[![Code Climate](https://codeclimate.com/github/lavab/mailer/badges/gpa.svg)](https://codeclimate.com/github/lavab/mailer)
 # mailer
 
 <img src="https://mail.lavaboom.com/img/Lavaboom-logo.svg" align="right" width="200px" />
